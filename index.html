@@ -84,18 +84,25 @@
     </footer>
 
     <script>
-        let targetIdCounter = 0;
+        // Track active target IDs to reuse smallest available number
+        let activeTargetIds = new Set();
 
-        // Auto add 1 initial target on load
         window.onload = function() {
             addTarget();
         };
+
+        function getNextAvailableId() {
+            let id = 1;
+            while (activeTargetIds.has(id)) {
+                id++;
+            }
+            return id;
+        }
 
         function parseCoordinates(text) {
             if (!text) return null;
             let x = null, y = null;
 
-            // Pattern: x98.43, y110.38
             const matchX = text.match(/x\s*[:=]?\s*(-?\d+\.?\d*)/i);
             const matchY = text.match(/y\s*[:=]?\s*(-?\d+\.?\d*)/i);
 
@@ -130,21 +137,22 @@
         }
 
         function addTarget() {
-            targetIdCounter++;
-            const id = targetIdCounter;
-            const container = document.getElementById('targetsContainer');
+            const id = getNextAvailableId();
+            activeTargetIds.add(id);
 
+            const container = document.getElementById('targetsContainer');
             const card = document.createElement('div');
             card.id = `target-card-${id}`;
             card.className = "bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 md:p-5 shadow-lg space-y-4 transition-all hover:border-slate-600";
             
             card.innerHTML = `
-                <div class="flex items-center justify-between border-b border-slate-700/60 pb-3">
-                    <div class="flex items-center gap-2">
-                        <span class="bg-slate-700 text-slate-300 font-bold px-2 py-0.5 rounded text-xs">#${id}</span>
-                        <h3 class="font-semibold text-slate-200 text-sm md:text-base">จุดเป้าหมาย Target ${id}</h3>
+                <div class="flex items-center justify-between border-b border-slate-700/60 pb-3 gap-2">
+                    <div class="flex items-center gap-2 flex-grow">
+                        <span class="bg-slate-700 text-slate-300 font-bold px-2 py-0.5 rounded text-xs shrink-0">#${id}</span>
+                        <input type="text" id="name-${id}" placeholder="ตำแหน่งที่ ${id}"
+                            class="bg-transparent text-slate-200 font-semibold text-sm md:text-base border-b border-transparent hover:border-slate-600 focus:border-cyan-500 focus:outline-none px-1 py-0.5 w-full transition-all" />
                     </div>
-                    <button onclick="removeTarget(${id})" class="text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 px-2.5 py-1 rounded-lg transition-colors">
+                    <button onclick="removeTarget(${id})" class="text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 px-2.5 py-1 rounded-lg transition-colors shrink-0">
                         <i class="fa-solid fa-trash-can mr-1"></i>ลบ
                     </button>
                 </div>
@@ -199,6 +207,7 @@
             const card = document.getElementById(`target-card-${id}`);
             if (card) {
                 card.remove();
+                activeTargetIds.delete(id);
             }
         }
 
@@ -241,9 +250,7 @@
         }
 
         function calculateAll() {
-            const targets = document.querySelectorAll('[id^="target-card-"]');
-            targets.forEach(target => {
-                const id = target.id.replace('target-card-', '');
+            activeTargetIds.forEach(id => {
                 calculateTarget(id);
             });
         }
