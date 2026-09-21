@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>เครื่องมือคำนวณระยะทางพิกัด (Mortar & Multi-Target)</title>
+    <title>เครื่องมือคำนวณระยะทางพิกัด (Mortar & Arty Multi-Target)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -18,42 +18,56 @@
         <header class="text-center space-y-2">
             <h1 class="text-2xl md:text-3xl font-bold text-amber-400 flex items-center justify-center gap-2">
                 <i class="fa-solid fa-crosshair text-amber-500"></i>
-                คำนวณพิกัด Mortar Multi-Target
+                คำนวณพิกัด Multi-Target
             </h1>
             <p class="text-slate-400 text-sm">
                 สูตร: <span class="text-amber-300 font-mono font-semibold">√[(X₁-X₂)² + (Y₁-Y₂)²] × 100</span>
             </p>
         </header>
 
-        <!-- Base Point (Mortar) -->
-        <div class="bg-slate-800 border-2 border-amber-500/40 rounded-2xl p-5 shadow-xl space-y-4">
+        <!-- Mode Selector Switch -->
+        <div class="bg-slate-800/90 border border-slate-700/80 rounded-2xl p-2 flex items-center justify-center gap-2 max-w-md mx-auto shadow-lg">
+            <button id="mode-mortar-btn" onclick="setMode('mortar')" 
+                class="flex-1 py-2.5 px-4 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all bg-amber-500 text-slate-950 shadow-md">
+                <i class="fa-solid fa-bullseye"></i>
+                Mortar (ปกติ)
+            </button>
+            <button id="mode-arty-btn" onclick="setMode('arty')" 
+                class="flex-1 py-2.5 px-4 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all text-slate-400 hover:text-slate-200">
+                <i class="fa-solid fa-explosion"></i>
+                Arty (-40)
+            </button>
+        </div>
+
+        <!-- Base Point (Base Coordinate) -->
+        <div id="base-card" class="bg-slate-800 border-2 border-amber-500/40 rounded-2xl p-5 shadow-xl space-y-4 transition-all">
             <div class="flex items-center justify-between border-b border-slate-700 pb-3">
                 <div class="flex items-center gap-2">
-                    <span class="bg-amber-500 text-slate-950 font-bold px-2.5 py-1 rounded-md text-xs">จุดอ้างอิงหลัก</span>
-                    <h2 class="text-lg font-bold text-amber-400">พิกัด Mortar (จุดที่ 1)</h2>
+                    <span id="base-badge" class="bg-amber-500 text-slate-950 font-bold px-2.5 py-1 rounded-md text-xs">จุดอ้างอิงหลัก</span>
+                    <h2 id="base-title" class="text-lg font-bold text-amber-400">พิกัด Mortar (จุดที่ 1)</h2>
                 </div>
                 <button onclick="clearMortar()" class="text-xs text-slate-400 hover:text-red-400 transition-colors">
                     <i class="fa-solid fa-rotate-left mr-1"></i>รีเซ็ต
                 </button>
             </div>
 
-            <!-- Mortar Fast Paste -->
+            <!-- Fast Paste -->
             <div class="relative">
-                <input type="text" id="mortarPaste" placeholder="วางพิกัด Mortar รวดเร็ว เช่น x98.43, y110.38" 
+                <input type="text" id="mortarPaste" placeholder="วางพิกัดจุดหลักรวดเร็ว เช่น x98.43, y110.38" 
                     oninput="handleMortarPaste(this.value)"
                     class="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-amber-200 placeholder-slate-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all">
                 <i class="fa-solid fa-bolt absolute right-3 top-3 text-amber-500/50"></i>
             </div>
 
-            <!-- Mortar Inputs -->
+            <!-- Inputs -->
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-medium text-slate-400 mb-1">X1 (Mortar)</label>
+                    <label id="label-x1" class="block text-xs font-medium text-slate-400 mb-1">X1 (Mortar)</label>
                     <input type="number" step="any" id="x1" placeholder="0.00" oninput="calculateAll()"
                         class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-slate-400 mb-1">Y1 (Mortar)</label>
+                    <label id="label-y1" class="block text-xs font-medium text-slate-400 mb-1">Y1 (Mortar)</label>
                     <input type="number" step="any" id="y1" placeholder="0.00" oninput="calculateAll()"
                         class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white font-mono focus:outline-none focus:border-amber-500">
                 </div>
@@ -80,16 +94,51 @@
     </div>
 
     <footer class="text-center text-xs text-slate-600 mt-8">
-        เครื่องมือคำนวณระยะทางแบบหลายจุด • พร้อมใช้งานบนเว็บ
+        เครื่องมือคำนวณระยะทางแบบหลายจุด • รองรับระบบ Mortar และ Arty
     </footer>
 
     <script>
-        // Track active target IDs to reuse smallest available number
+        let currentMode = 'mortar'; // 'mortar' or 'arty'
         let activeTargetIds = new Set();
 
         window.onload = function() {
             addTarget();
         };
+
+        function setMode(mode) {
+            currentMode = mode;
+            const mortarBtn = document.getElementById('mode-mortar-btn');
+            const artyBtn = document.getElementById('mode-arty-btn');
+            const baseCard = document.getElementById('base-card');
+            const baseTitle = document.getElementById('base-title');
+            const baseBadge = document.getElementById('base-badge');
+            const labelX1 = document.getElementById('label-x1');
+            const labelY1 = document.getElementById('label-y1');
+
+            if (mode === 'mortar') {
+                mortarBtn.className = "flex-1 py-2.5 px-4 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all bg-amber-500 text-slate-950 shadow-md";
+                artyBtn.className = "flex-1 py-2.5 px-4 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all text-slate-400 hover:text-slate-200";
+                
+                baseCard.className = "bg-slate-800 border-2 border-amber-500/40 rounded-2xl p-5 shadow-xl space-y-4 transition-all";
+                baseTitle.className = "text-lg font-bold text-amber-400";
+                baseTitle.innerText = "พิกัด Mortar (จุดที่ 1)";
+                baseBadge.className = "bg-amber-500 text-slate-950 font-bold px-2.5 py-1 rounded-md text-xs";
+                labelX1.innerText = "X1 (Mortar)";
+                labelY1.innerText = "Y1 (Mortar)";
+            } else {
+                artyBtn.className = "flex-1 py-2.5 px-4 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all bg-orange-600 text-white shadow-md";
+                mortarBtn.className = "flex-1 py-2.5 px-4 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all text-slate-400 hover:text-slate-200";
+                
+                baseCard.className = "bg-slate-800 border-2 border-orange-500/40 rounded-2xl p-5 shadow-xl space-y-4 transition-all";
+                baseTitle.className = "text-lg font-bold text-orange-400";
+                baseTitle.innerText = "พิกัด Arty (จุดที่ 1)";
+                baseBadge.className = "bg-orange-600 text-white font-bold px-2.5 py-1 rounded-md text-xs";
+                labelX1.innerText = "X1 (Arty)";
+                labelY1.innerText = "Y1 (Arty)";
+            }
+
+            calculateAll();
+        }
 
         function getNextAvailableId() {
             let id = 1;
@@ -233,7 +282,7 @@
             if (isNaN(x1) || isNaN(y1) || isNaN(x2) || isNaN(y2)) {
                 resEl.innerText = "0.00";
                 resEl.className = "text-xl md:text-2xl font-bold font-mono text-slate-600";
-                stepEl.innerText = "กรอกพิกัด Mortar และ Target ให้ครบถ้วน";
+                stepEl.innerText = "กรอกพิกัดจุดหลักและ Target ให้ครบถ้วน";
                 copyBtn.disabled = true;
                 return;
             }
@@ -241,11 +290,17 @@
             const dx = x1 - x2;
             const dy = y1 - y2;
             const dist = Math.sqrt(dx * dx + dy * dy);
-            const finalResult = dist * 100;
+            let finalResult = dist * 100;
+
+            if (currentMode === 'arty') {
+                finalResult = finalResult - 40;
+                stepEl.innerText = `(√[(${dx.toFixed(2)})² + (${dy.toFixed(2)})²] × 100) - 40`;
+            } else {
+                stepEl.innerText = `√[(${dx.toFixed(2)})² + (${dy.toFixed(2)})²] × 100`;
+            }
 
             resEl.innerText = finalResult.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
             resEl.className = "text-xl md:text-2xl font-bold font-mono text-emerald-400";
-            stepEl.innerText = `√[(${dx.toFixed(2)})² + (${dy.toFixed(2)})²] × 100`;
             copyBtn.disabled = false;
         }
 
