@@ -78,7 +78,7 @@
                     <button id="mode-arty-btn" onclick="setMode('arty')" 
                         class="py-1.5 px-3 rounded-lg font-semibold text-xs flex items-center gap-1.5 transition-all text-slate-400 hover:text-slate-200">
                         <i class="fa-solid fa-explosion"></i>
-                        Arty (-40)
+                        Arty (วิเคราะห์กระสุนตก)
                     </button>
                 </div>
 
@@ -98,7 +98,7 @@
     </div>
 
     <footer class="text-center text-xs text-slate-600 mt-8">
-        เครื่องมือคำนวณระยะทางแบบหลายจุด • รองรับระบบ Mortar และ Arty
+        เครื่องมือคำนวณระยะทางแบบหลายจุด • ระบบวิเคราะห์ทิศทางปรับแก้จุดตก Arty
     </footer>
 
     <script>
@@ -140,6 +140,17 @@
                 labelX1.innerText = "X1 (Arty)";
                 labelY1.innerText = "Y1 (Arty)";
             }
+
+            activeTargetIds.forEach(id => {
+                const impactSection = document.getElementById(`impact-section-${id}`);
+                if (impactSection) {
+                    if (mode === 'arty') {
+                        impactSection.classList.remove('hidden');
+                    } else {
+                        impactSection.classList.add('hidden');
+                    }
+                }
+            });
 
             calculateAll();
         }
@@ -213,40 +224,81 @@
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
                     <!-- Inputs Left (7 cols) -->
                     <div class="md:col-span-7 space-y-3">
-                        <div class="relative">
-                            <input type="text" id="paste-${id}" placeholder="วางพิกัดรวดเร็ว เช่น x120.5, y80.2" 
-                                oninput="handleTargetPaste(${id}, this.value)"
-                                class="w-full bg-slate-950/60 border border-slate-700/80 rounded-xl px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500">
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-xs text-slate-400 mb-1">X₂</label>
-                                <input type="number" step="any" id="x2-${id}" placeholder="0.00" oninput="calculateTarget(${id})"
-                                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-cyan-500">
+                        <div>
+                            <div class="text-xs text-cyan-400 font-semibold mb-1">พิกัดเป้าหมายยิง (Target)</div>
+                            <div class="relative mb-2">
+                                <input type="text" id="paste-${id}" placeholder="วางพิกัดรวดเร็ว เช่น x120.5, y80.2" 
+                                    oninput="handleTargetPaste(${id}, this.value)"
+                                    class="w-full bg-slate-950/60 border border-slate-700/80 rounded-xl px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500">
                             </div>
-                            <div>
-                                <label class="block text-xs text-slate-400 mb-1">Y₂</label>
-                                <input type="number" step="any" id="y2-${id}" placeholder="0.00" oninput="calculateTarget(${id})"
-                                    class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-cyan-500">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-1">X₂ (เป้าหมาย)</label>
+                                    <input type="number" step="any" id="x2-${id}" placeholder="0.00" oninput="calculateTarget(${id})"
+                                        class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-cyan-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-1">Y₂ (เป้าหมาย)</label>
+                                    <input type="number" step="any" id="y2-${id}" placeholder="0.00" oninput="calculateTarget(${id})"
+                                        class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-cyan-500">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Arty Impact Point Inputs (Hidden in Mortar Mode) -->
+                        <div id="impact-section-${id}" class="${currentMode === 'arty' ? '' : 'hidden'} border-t border-slate-700/60 pt-3 space-y-2">
+                            <div class="text-xs text-orange-400 font-semibold">พิกัดกระสุนตกจริง (Impact / Splash Point)</div>
+                            <div class="relative">
+                                <input type="text" id="impact-paste-${id}" placeholder="วางพิกัดกระสุนตกรวดเร็ว" 
+                                    oninput="handleImpactPaste(${id}, this.value)"
+                                    class="w-full bg-slate-950/60 border border-orange-500/30 rounded-xl px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-orange-500">
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-1">X (กระสุนตก)</label>
+                                    <input type="number" step="any" id="xi-${id}" placeholder="0.00" oninput="calculateTarget(${id})"
+                                        class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-orange-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-slate-400 mb-1">Y (กระสุนตก)</label>
+                                    <input type="number" step="any" id="yi-${id}" placeholder="0.00" oninput="calculateTarget(${id})"
+                                        class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-orange-500">
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Output Right (5 cols) -->
                     <div class="md:col-span-5 bg-slate-950/80 rounded-xl p-3.5 border border-slate-800 flex flex-col justify-between">
-                        <div>
-                            <div class="text-xs text-slate-400 mb-1">ผลลัพธ์คำนวณ</div>
-                            <div id="result-${id}" class="text-xl md:text-2xl font-bold font-mono text-cyan-400 truncate">
-                                0.00
+                        <div class="space-y-2">
+                            <div>
+                                <div class="text-xs text-slate-400 mb-1">ระยะเป้าหมาย</div>
+                                <div id="result-${id}" class="text-xl md:text-2xl font-bold font-mono text-cyan-400 truncate">
+                                    0.00
+                                </div>
+                                <div id="step-${id}" class="text-[11px] text-slate-500 font-mono mt-0.5 truncate">
+                                    รอระบุพิกัด...
+                                </div>
                             </div>
-                            <div id="step-${id}" class="text-[11px] text-slate-500 font-mono mt-1 truncate">
-                                รอระบุพิกัด...
+
+                            <!-- Arrow Correction Box (Arty Mode) -->
+                            <div id="corr-box-${id}" class="hidden bg-slate-900 border border-orange-500/40 rounded-lg p-2.5 space-y-1">
+                                <div class="text-[11px] font-semibold text-orange-400 flex items-center gap-1">
+                                    <i class="fa-solid fa-compass"></i> คำแนะนำการปรับยิง
+                                </div>
+                                <div id="corr-dist-${id}" class="text-sm font-bold text-slate-100 flex items-center gap-2">
+                                    -
+                                </div>
+                                <div id="corr-dir-${id}" class="text-sm font-bold text-slate-100 flex items-center gap-2">
+                                    -
+                                </div>
                             </div>
                         </div>
+
                         <button onclick="copyResult(${id})" id="btn-copy-${id}" disabled
                             class="mt-3 w-full bg-slate-800 hover:bg-slate-700 text-slate-300 disabled:opacity-40 disabled:hover:bg-slate-800 text-xs py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-colors">
                             <i class="fa-regular fa-copy"></i>
-                            <span id="copy-text-${id}">ก๊อปปี้ผลลัพธ์</span>
+                            <span id="copy-text-${id}">ก๊อปปี้ระยะเป้าหมาย</span>
                         </button>
                     </div>
                 </div>
@@ -273,6 +325,15 @@
             }
         }
 
+        function handleImpactPaste(id, val) {
+            const coords = parseCoordinates(val);
+            if (coords) {
+                document.getElementById(`xi-${id}`).value = coords.x;
+                document.getElementById(`yi-${id}`).value = coords.y;
+                calculateTarget(id);
+            }
+        }
+
         function calculateTarget(id) {
             const x1 = parseFloat(document.getElementById('x1').value);
             const y1 = parseFloat(document.getElementById('y1').value);
@@ -282,30 +343,75 @@
             const resEl = document.getElementById(`result-${id}`);
             const stepEl = document.getElementById(`step-${id}`);
             const copyBtn = document.getElementById(`btn-copy-${id}`);
+            const corrBox = document.getElementById(`corr-box-${id}`);
+            const corrDistEl = document.getElementById(`corr-dist-${id}`);
+            const corrDirEl = document.getElementById(`corr-dir-${id}`);
 
             if (isNaN(x1) || isNaN(y1) || isNaN(x2) || isNaN(y2)) {
                 resEl.innerText = "0.00";
                 resEl.className = "text-xl md:text-2xl font-bold font-mono text-slate-600";
                 stepEl.innerText = "กรอกพิกัดจุดหลักและ Target ให้ครบถ้วน";
                 copyBtn.disabled = true;
+                if (corrBox) corrBox.classList.add('hidden');
                 return;
             }
 
             const dx = x1 - x2;
             const dy = y1 - y2;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            let finalResult = dist * 100;
+            const targetDist = Math.sqrt(dx * dx + dy * dy) * 100;
 
-            if (currentMode === 'arty') {
-                finalResult = finalResult - 40;
-                stepEl.innerText = `(√[(${dx.toFixed(2)})² + (${dy.toFixed(2)})²] × 100) - 40`;
-            } else {
-                stepEl.innerText = `√[(${dx.toFixed(2)})² + (${dy.toFixed(2)})²] × 100`;
-            }
-
-            resEl.innerText = finalResult.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+            resEl.innerText = targetDist.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
             resEl.className = "text-xl md:text-2xl font-bold font-mono text-emerald-400";
+            stepEl.innerText = `√[(${dx.toFixed(2)})² + (${dy.toFixed(2)})²] × 100`;
             copyBtn.disabled = false;
+
+            // Arty Correction Logic with Arrows Only
+            if (currentMode === 'arty') {
+                corrBox.classList.remove('hidden');
+                const xi = parseFloat(document.getElementById(`xi-${id}`).value);
+                const yi = parseFloat(document.getElementById(`yi-${id}`).value);
+
+                if (isNaN(xi) || isNaN(yi)) {
+                    corrDistEl.innerHTML = `<span class="text-xs text-slate-500 font-normal">กรอกพิกัดกระสุนตกเพื่อดูทิศทาง</span>`;
+                    corrDirEl.innerHTML = ``;
+                } else {
+                    const dxi = x1 - xi;
+                    const dyi = y1 - yi;
+                    const impactDist = Math.sqrt(dxi * dxi + dyi * dyi) * 100;
+
+                    const rangeDiff = targetDist - impactDist;
+                    
+                    let rangeText = "";
+                    if (Math.abs(rangeDiff) < 0.1) {
+                        rangeText = `<span class="text-emerald-400">🎯 ระยะตรงเป้า</span>`;
+                    } else if (rangeDiff > 0) {
+                        rangeText = `<span class="text-amber-400">⬆️ เลื่อนขึ้น</span>`;
+                    } else {
+                        rangeText = `<span class="text-cyan-400">⬇️ เลื่อนลง</span>`;
+                    }
+
+                    const vTargetX = x2 - x1;
+                    const vTargetY = y2 - y1;
+                    const vImpactX = xi - x1;
+                    const vImpactY = yi - y1;
+
+                    const crossProduct = (vTargetX * vImpactY) - (vTargetY * vImpactX);
+
+                    let dirText = "";
+                    if (Math.abs(crossProduct) < 0.01) {
+                        dirText = `<span class="text-emerald-400">🎯 ทิศทางตรงเป้า</span>`;
+                    } else if (crossProduct > 0) {
+                        dirText = `<span class="text-orange-400">➡️ ปรับไปทางขวา</span>`;
+                    } else {
+                        dirText = `<span class="text-orange-400">⬅️ ปรับไปทางซ้าย</span>`;
+                    }
+
+                    corrDistEl.innerHTML = rangeText;
+                    corrDirEl.innerHTML = dirText;
+                }
+            } else {
+                corrBox.classList.add('hidden');
+            }
         }
 
         function calculateAll() {
@@ -320,7 +426,7 @@
                 const label = document.getElementById(`copy-text-${id}`);
                 label.innerText = "คัดลอกแล้ว!";
                 setTimeout(() => {
-                    label.innerText = "ก๊อปปี้ผลลัพธ์";
+                    label.innerText = "ก๊อปปี้ระยะเป้าหมาย";
                 }, 1500);
             });
         }
