@@ -98,14 +98,13 @@
     </div>
 
     <footer class="text-center text-xs text-slate-600 mt-8">
-        เครื่องมือคำนวณระยะทางแบบหลายจุด • รองรับการคำนวณ MIL สำหรับยิงนัดแรก
+        เครื่องมือคำนวณระยะทางแบบหลายจุด • รองรับระยะยิงจริงเพื่อคำนวณปรับยิง
     </footer>
 
     <script>
-        let currentMode = 'mortar'; // 'mortar' or 'arty'
+        let currentMode = 'mortar';
         let activeTargetIds = new Set();
 
-        // Standard reference ratio: 2216m = 970 mils
         const REF_DIST = 2216;
         const REF_MIL = 970;
 
@@ -235,16 +234,21 @@
                                     oninput="handleTargetPaste(${id}, this.value)"
                                     class="w-full bg-slate-950/60 border border-slate-700/80 rounded-xl px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500">
                             </div>
-                            <div class="grid grid-cols-2 gap-3">
+                            <div class="grid grid-cols-3 gap-2">
                                 <div>
                                     <label class="block text-xs text-slate-400 mb-1">X₂ (เป้าหมาย)</label>
                                     <input type="number" step="any" id="x2-${id}" placeholder="0.00" oninput="calculateTarget(${id})"
-                                        class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-cyan-500">
+                                        class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-sm text-white font-mono focus:outline-none focus:border-cyan-500">
                                 </div>
                                 <div>
                                     <label class="block text-xs text-slate-400 mb-1">Y₂ (เป้าหมาย)</label>
                                     <input type="number" step="any" id="y2-${id}" placeholder="0.00" oninput="calculateTarget(${id})"
-                                        class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-cyan-500">
+                                        class="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-2 text-sm text-white font-mono focus:outline-none focus:border-cyan-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-amber-400 font-medium mb-1 truncate">ระยะยิงจริง (m)</label>
+                                    <input type="number" step="any" id="fired-dist-${id}" placeholder="ออโต้" oninput="calculateTarget(${id})"
+                                        class="w-full bg-slate-900 border border-amber-500/40 rounded-xl px-2.5 py-2 text-sm text-amber-300 font-mono focus:outline-none focus:border-amber-500">
                                 </div>
                             </div>
                         </div>
@@ -294,15 +298,15 @@
                                 รอระบุพิกัด...
                             </div>
 
-                            <!-- Arrow & Range Difference Correction Box (Arty Mode) -->
-                            <div id="corr-box-${id}" class="hidden bg-slate-900 border border-orange-500/40 rounded-lg p-2.5 space-y-1">
+                            <!-- Correction Box (Arty Mode) -->
+                            <div id="corr-box-${id}" class="hidden bg-slate-900 border border-orange-500/40 rounded-lg p-2.5 space-y-1.5">
                                 <div class="text-[11px] font-semibold text-orange-400 flex items-center gap-1">
                                     <i class="fa-solid fa-compass"></i> คำแนะนำการปรับยิง
                                 </div>
-                                <div id="corr-dist-${id}" class="text-sm font-bold text-slate-100 flex items-center gap-2">
+                                <div id="corr-dist-${id}" class="text-xs font-bold text-slate-100 leading-relaxed">
                                     -
                                 </div>
-                                <div id="corr-dir-${id}" class="text-sm font-bold text-slate-100 flex items-center gap-2">
+                                <div id="corr-dir-${id}" class="text-xs font-bold text-slate-100 flex items-center gap-2">
                                     -
                                 </div>
                             </div>
@@ -382,18 +386,20 @@
 
             const dx = x1 - x2;
             const dy = y1 - y2;
-            const targetDist = Math.sqrt(dx * dx + dy * dy) * 100;
+            const calculatedTargetDist = Math.sqrt(dx * dx + dy * dy) * 100;
+            const targetMil = (calculatedTargetDist * REF_MIL) / REF_DIST;
 
-            // Calculate MILs based on reference ratio (2216m = 970 mils)
-            const targetMil = (targetDist * REF_MIL) / REF_DIST;
-
-            resEl.innerHTML = `${targetDist.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span class="text-xs font-normal text-slate-400">m</span>`;
+            resEl.innerHTML = `${calculatedTargetDist.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span class="text-xs font-normal text-slate-400">m</span>`;
             milEl.innerHTML = `${Math.round(targetMil)} <span class="text-xs font-normal text-slate-400">mils</span>`;
 
             resEl.className = "text-lg md:text-xl font-bold font-mono text-emerald-400 truncate";
             stepEl.innerText = `√[(${dx.toFixed(2)})² + (${dy.toFixed(2)})²] × 100`;
             copyBtn.disabled = false;
             copyMilBtn.disabled = false;
+
+            // Check if user specified a manual fired distance
+            const manualFiredDist = parseFloat(document.getElementById(`fired-dist-${id}`).value);
+            const baseFiredDist = !isNaN(manualFiredDist) ? manualFiredDist : calculatedTargetDist;
 
             // Arty Correction Logic
             if (currentMode === 'arty') {
@@ -409,15 +415,20 @@
                     const dyi = y1 - yi;
                     const impactDist = Math.sqrt(dxi * dxi + dyi * dyi) * 100;
 
-                    const rangeDiff = targetDist - impactDist; // + means target is further than impact
-                    
+                    const rangeDiff = calculatedTargetDist - impactDist; // Difference between target and impact
+                    const correctedDist = baseFiredDist + rangeDiff; // Adjusted firing distance from base fired distance
+
+                    const fmtBaseFired = baseFiredDist.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    const fmtCorrected = correctedDist.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    const fmtDiff = Math.abs(rangeDiff).toFixed(2);
+
                     let rangeText = "";
                     if (Math.abs(rangeDiff) < 0.01) {
-                        rangeText = `<span class="text-emerald-400">🎯 ระยะตรงเป้า (0.00)</span>`;
+                        rangeText = `<span class="text-emerald-400">🎯 ระยะตรงเป้า (${fmtCorrected} m)</span>`;
                     } else if (rangeDiff > 0) {
-                        rangeText = `<span class="text-amber-400">⬆️ เลื่อนขึ้น (<span class="font-mono">+${rangeDiff.toFixed(2)}</span>)</span>`;
+                        rangeText = `<span class="text-amber-400">⬆️ เลื่อนขึ้น</span><br/><span class="text-[11px] font-mono text-slate-300 font-normal">${fmtBaseFired} + ${fmtDiff} = ${fmtCorrected} m</span>`;
                     } else {
-                        rangeText = `<span class="text-cyan-400">⬇️ เลื่อนลง (<span class="font-mono">${rangeDiff.toFixed(2)}</span>)</span>`;
+                        rangeText = `<span class="text-cyan-400">⬇️ เลื่อนลง</span><br/><span class="text-[11px] font-mono text-slate-300 font-normal">${fmtBaseFired} - ${fmtDiff} = ${fmtCorrected} m</span>`;
                     }
 
                     const vTargetX = x2 - x1;
