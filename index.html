@@ -98,7 +98,7 @@
     </div>
 
     <footer class="text-center text-xs text-slate-600 mt-8">
-        เครื่องมือคำนวณระยะทางแบบหลายจุด • ระบบวิเคราะห์ทิศทางปรับแก้จุดตก Arty
+        เครื่องมือคำนวณระยะทางแบบหลายจุด • ระบบวิเคราะห์ทิศทางและผลต่างจุดตก Arty
     </footer>
 
     <script>
@@ -142,71 +142,7 @@
             }
 
             activeTargetIds.forEach(id => {
-                const impactSection = document.getElementById(`impact-section-${id}`);
-                if (impactSection) {
-                    if (mode === 'arty') {
-                        impactSection.classList.remove('hidden');
-                    } else {
-                        impactSection.classList.add('hidden');
-                    }
-                }
-            });
-
-            calculateAll();
-        }
-
-        function getNextAvailableId() {
-            let id = 1;
-            while (activeTargetIds.has(id)) {
-                id++;
-            }
-            return id;
-        }
-
-        function parseCoordinates(text) {
-            if (!text) return null;
-            let x = null, y = null;
-
-            const matchX = text.match(/x\s*[:=]?\s*(-?\d+\.?\d*)/i);
-            const matchY = text.match(/y\s*[:=]?\s*(-?\d+\.?\d*)/i);
-
-            if (matchX && matchY) {
-                x = parseFloat(matchX[1]);
-                y = parseFloat(matchY[1]);
-            } else {
-                const numbers = text.match(/-?\d+\.?\d*/g);
-                if (numbers && numbers.length >= 2) {
-                    x = parseFloat(numbers[0]);
-                    y = parseFloat(numbers[1]);
-                }
-            }
-
-            return (x !== null && y !== null && !isNaN(x) && !isNaN(y)) ? { x, y } : null;
-        }
-
-        function handleMortarPaste(val) {
-            const coords = parseCoordinates(val);
-            if (coords) {
-                document.getElementById('x1').value = coords.x;
-                document.getElementById('y1').value = coords.y;
-                calculateAll();
-            }
-        }
-
-        function clearMortar() {
-            document.getElementById('x1').value = '';
-            document.getElementById('y1').value = '';
-            document.getElementById('mortarPaste').value = '';
-            calculateAll();
-        }
-
-        function addTarget() {
-            const id = getNextAvailableId();
-            activeTargetIds.add(id);
-
-            const container = document.getElementById('targetsContainer');
-            const card = document.createElement('div');
-            card.id = `target-card-${id}`;
+                const impactSection = document.getElementById(`impact-section-${id}`);                 if (impactSection) {                     if (mode === 'arty') {                         impactSection.classList.remove('hidden');                     } else {                         impactSection.classList.add('hidden');                     }                 }             });              calculateAll();         }          function getNextAvailableId() {             let id = 1;             while (activeTargetIds.has(id)) {                 id++;             }             return id;         }          function parseCoordinates(text) {             if (!text) return null;             let x = null, y = null;              const matchX = text.match(/x\s*[:=]?\s*(-?\d+\.?\d*)/i);             const matchY = text.match(/y\s*[:=]?\s*(-?\d+\.?\d*)/i);              if (matchX && matchY) {                 x = parseFloat(matchX[1]);                 y = parseFloat(matchY[1]);             } else {                 const numbers = text.match(/-?\d+\.?\d*/g);                 if (numbers && numbers.length >= 2) {                     x = parseFloat(numbers[0]);                     y = parseFloat(numbers[1]);                 }             }              return (x !== null && y !== null && !isNaN(x) && !isNaN(y)) ? { x, y } : null;         }          function handleMortarPaste(val) {             const coords = parseCoordinates(val);             if (coords) {                 document.getElementById('x1').value = coords.x;                 document.getElementById('y1').value = coords.y;                 calculateAll();             }         }          function clearMortar() {             document.getElementById('x1').value = '';             document.getElementById('y1').value = '';             document.getElementById('mortarPaste').value = '';             calculateAll();         }          function addTarget() {             const id = getNextAvailableId();             activeTargetIds.add(id);              const container = document.getElementById('targetsContainer');             const card = document.createElement('div');             card.id = `target-card-${id}`;
             card.className = "bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 md:p-5 shadow-lg space-y-4 transition-all hover:border-slate-600";
             
             card.innerHTML = `
@@ -281,7 +217,7 @@
                                 </div>
                             </div>
 
-                            <!-- Arrow Correction Box (Arty Mode) -->
+                            <!-- Arrow & Range Difference Correction Box (Arty Mode) -->
                             <div id="corr-box-${id}" class="hidden bg-slate-900 border border-orange-500/40 rounded-lg p-2.5 space-y-1">
                                 <div class="text-[11px] font-semibold text-orange-400 flex items-center gap-1">
                                     <i class="fa-solid fa-compass"></i> คำแนะนำการปรับยิง
@@ -365,29 +301,29 @@
             stepEl.innerText = `√[(${dx.toFixed(2)})² + (${dy.toFixed(2)})²] × 100`;
             copyBtn.disabled = false;
 
-            // Arty Correction Logic with Arrows Only
+            // Arty Correction Logic
             if (currentMode === 'arty') {
                 corrBox.classList.remove('hidden');
                 const xi = parseFloat(document.getElementById(`xi-${id}`).value);
                 const yi = parseFloat(document.getElementById(`yi-${id}`).value);
 
                 if (isNaN(xi) || isNaN(yi)) {
-                    corrDistEl.innerHTML = `<span class="text-xs text-slate-500 font-normal">กรอกพิกัดกระสุนตกเพื่อดูทิศทาง</span>`;
+                    corrDistEl.innerHTML = `<span class="text-xs text-slate-500 font-normal">กรอกพิกัดกระสุนตกเพื่อคำนวณ</span>`;
                     corrDirEl.innerHTML = ``;
                 } else {
                     const dxi = x1 - xi;
                     const dyi = y1 - yi;
                     const impactDist = Math.sqrt(dxi * dxi + dyi * dyi) * 100;
 
-                    const rangeDiff = targetDist - impactDist;
+                    const rangeDiff = targetDist - impactDist; // + means target is further than impact
                     
                     let rangeText = "";
-                    if (Math.abs(rangeDiff) < 0.1) {
-                        rangeText = `<span class="text-emerald-400">🎯 ระยะตรงเป้า</span>`;
+                    if (Math.abs(rangeDiff) < 0.01) {
+                        rangeText = `<span class="text-emerald-400">🎯 ระยะตรงเป้า (0.00)</span>`;
                     } else if (rangeDiff > 0) {
-                        rangeText = `<span class="text-amber-400">⬆️ เลื่อนขึ้น</span>`;
+                        rangeText = `<span class="text-amber-400">⬆️ เลื่อนขึ้น (<span class="font-mono">+${rangeDiff.toFixed(2)}</span>)</span>`;
                     } else {
-                        rangeText = `<span class="text-cyan-400">⬇️ เลื่อนลง</span>`;
+                        rangeText = `<span class="text-cyan-400">⬇️ เลื่อนลง (<span class="font-mono">${rangeDiff.toFixed(2)}</span>)</span>`;
                     }
 
                     const vTargetX = x2 - x1;
